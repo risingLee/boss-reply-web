@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>职场回复助手 - 一键生成高情商回复</title>
+  <meta name="description" content="输入领导的话，智能匹配多种风格的职场回复。被批评、被加任务、模糊指令，从容应对。">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+    .container { max-width: 520px; margin: 0 auto; padding: 24px 16px 80px; }
+
+    /* Header */
+    .header { text-align: center; padding: 32px 0 24px; }
+    .header h1 { font-size: 28px; color: #fff; font-weight: 700; }
+    .header p { color: rgba(255,255,255,0.8); font-size: 14px; margin-top: 6px; }
+
+    /* Card */
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .card-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #2d3436; }
+
+    /* Input */
+    .input-area {
+      width: 100%;
+      min-height: 100px;
+      padding: 14px;
+      border: 2px solid #eee;
+      border-radius: 12px;
+      font-size: 15px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .input-area:focus { border-color: #6c5ce7; }
+    .char-count { text-align: right; font-size: 12px; color: #b2bec3; margin-top: 6px; }
+
+    /* Examples */
+    .examples { margin-bottom: 16px; }
+    .examples-label { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 10px; }
+    .example-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .example-chip {
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 13px;
+      color: #636e72;
+      cursor: pointer;
+      transition: all 0.15s;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .example-chip:hover { border-color: #6c5ce7; color: #6c5ce7; background: #f0efff; }
+
+    /* Scene */
+    .scene-list { display: flex; gap: 10px; }
+    .scene-item {
+      flex: 1;
+      text-align: center;
+      padding: 14px 8px;
+      border: 2px solid #eee;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .scene-item:hover { border-color: #b8b5ff; }
+    .scene-item.active { border-color: #6c5ce7; background: #f0efff; }
+    .scene-label { font-size: 15px; font-weight: 600; }
+    .scene-desc { font-size: 11px; color: #b2bec3; margin-top: 4px; }
+    .scene-item.active .scene-desc { color: #6c5ce7; }
+
+    /* Button */
+    .generate-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 600;
+      border: none;
+      border-radius: 40px;
+      cursor: pointer;
+      margin: 20px 0;
+      box-shadow: 0 6px 24px rgba(108,92,231,0.35);
+      transition: all 0.15s;
+    }
+    .generate-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(108,92,231,0.45); }
+    .generate-btn:active { transform: scale(0.98); }
+    .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .generate-btn .loading { display: inline-flex; align-items: center; gap: 8px; }
+    .dot-pulse {
+      width: 8px; height: 8px; background: #fff; border-radius: 50%;
+      animation: pulse 0.8s infinite alternate;
+    }
+    @keyframes pulse { from { opacity: 0.3; transform: scale(0.8); } to { opacity: 1; transform: scale(1.2); } }
+
+    /* Results */
+    .results-section { display: none; margin-top: 8px; }
+    .results-section.show { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .results-title { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 16px; color: #fff; }
+
+    .result-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      border-left: 5px solid #dfe6e9;
+    }
+    .result-card.stable { border-left-color: #74b9ff; }
+    .result-card.counter { border-left-color: #fdcb6e; }
+    .result-card.eq { border-left-color: #55efc4; }
+
+    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .result-tag {
+      font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 6px;
+    }
+    .tag-stable { background: #e8f4ff; color: #0984e3; }
+    .tag-counter { background: #fef3cd; color: #e17055; }
+    .tag-eq { background: #e0fcef; color: #00b894; }
+    .result-hint { font-size: 12px; color: #b2bec3; }
+    .result-text { font-size: 15px; line-height: 1.7; color: #2d3436; padding: 8px 0; }
+    .copy-btn {
+      display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+      font-size: 13px; color: #6c5ce7; cursor: pointer; padding-top: 10px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .copy-btn:hover { opacity: 0.7; }
+
+    .result-actions { display: flex; justify-content: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    .action-btn {
+      padding: 10px 20px; background: rgba(255,255,255,0.95); border: 1px solid #e0e0e0;
+      border-radius: 24px; font-size: 13px; color: #636e72; cursor: pointer; transition: all 0.15s;
+    }
+    .action-btn:hover { border-color: #6c5ce7; color: #6c5ce7; background: #f0efff; }
+
+    /* Footer */
+    .footer { text-align: center; padding: 32px 0 16px; }
+    .footer-text { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+    /* Error */
+    .error-msg {
+      display: none; padding: 12px 16px; background: #fff5f5; border: 1px solid #feb2b2;
+      border-radius: 12px; color: #c53030; font-size: 14px; margin-bottom: 12px;
+    }
+    .error-msg.show { display: block; }
+
+    /* Toast */
+    .toast {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.75); color: #fff; padding: 12px 28px; border-radius: 8px;
+      font-size: 14px; z-index: 999; display: none;
+    }
+    .toast.show { display: block; animation: fadeIn 0.2s ease; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💬 职场回复助手</h1>
+      <p>一键生成高情商职场回复</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📝 领导说了什么？</div>
+      <textarea class="input-area" id="bossText" placeholder="粘贴领导的话..." maxlength="500"></textarea>
+      <div class="char-count"><span id="charCount">0</span>/500</div>
+    </div>
+
+    <div class="examples">
+      <div class="examples-label">💡 试试这些</div>
+      <div class="example-chips">
+        <div class="example-chip" onclick="useExample(0)">"这个方案做得太粗糙了"</div>
+        <div class="example-chip" onclick="useExample(1)">"这个也顺便你来做一下吧"</div>
+        <div class="example-chip" onclick="useExample(2)">"这个事你看着办吧"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 选择场景</div>
+      <div class="scene-list">
+        <div class="scene-item active" data-scene="被批评" onclick="selectScene(this)">
+          <div class="scene-label">被批评 😓</div>
+          <div class="scene-desc">领导对工作不满</div>
+        </div>
+        <div class="scene-item" data-scene="被加任务" onclick="selectScene(this)">
+          <div class="scene-label">被加任务 😩</div>
+          <div class="scene-desc">被塞更多活儿</div>
+        </div>
+        <div class="scene-item" data-scene="模糊指令" onclick="selectScene(this)">
+          <div class="scene-label">模糊指令 😐</div>
+          <div class="scene-desc">你看着办/差不多</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <button class="generate-btn" id="generateBtn" onclick="generate()">✨ 生成回复</button>
+
+    <div class="results-section" id="results">
+      <div class="results-title">📤 三种回复推荐</div>
+
+      <div class="result-card stable">
+        <div class="result-header">
+          <span class="result-tag tag-stable">🧊 稳住版</span>
+          <span class="result-hint">安全不出错</span>
+        </div>
+        <div class="result-text" id="stableText"></div>
+        <div class="copy-btn" onclick="copyText('stableText')">📋 复制</div>
+      </div>
+
+      <div class="result-card counter">
+        <div class="result-header">
+          <span class="result-tag tag-counter">😏 体面反击版</span>
+          <span class="result-hint">有边界感不吃亏</span>
+        </div>
+        <div class="result-text" id="counterText"></div>
+        <div class="copy-btn" onclick="copyText('counterText')">📋 复制</div>
+      </div>
+
+      <div class="result-card eq">
+        <div class="result-header">
+          <span class="result-tag tag-eq">🤝 高情商版</span>
+          <span class="result-hint">圆滑优先关系</span>
+        </div>
+        <div class="result-text" id="eqText"></div>
+        <div class="copy-btn" onclick="copyText('eqText')">📋 复制</div>
+      </div>
+
+      <div class="result-actions">
+        <div class="action-btn" onclick="retry()">🔄 换一批</div>
+        <div class="action-btn" onclick="share()">📤 分享</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-text">智能匹配职场话术，助你从容应对 ✌️</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const examples = [
+      { text: '这个方案做得太粗糙了，你就是这么对待工作的吗？', scene: '被批评' },
+      { text: '这个也顺便你来做一下吧，反正也不复杂', scene: '被加任务' },
+      { text: '这个事你看着办吧，差不多就行', scene: '模糊指令' },
+    ];
+
+    let selectedScene = '被批评';
+    let loading = false;
+
+    // 字数统计
+    document.getElementById('bossText').addEventListener('input', (e) => {
+      document.getElementById('charCount').textContent = e.target.value.length;
+    });
+
+    function useExample(idx) {
+      const ex = examples[idx];
+      document.getElementById('bossText').value = ex.text;
+      document.getElementById('charCount').textContent = ex.text.length;
+      // 选中对应场景
+      document.querySelectorAll('.scene-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.scene === ex.scene);
+      });
+      selectedScene = ex.scene;
+    }
+
+    function selectScene(el) {
+      document.querySelectorAll('.scene-item').forEach(e => e.classList.remove('active'));
+      el.classList.add('active');
+      selectedScene = el.dataset.scene;
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1500);
+    }
+
+    function autoDetectScene(text) {
+      if (/批评|骂|不满|失望|做得不好|太差|粗糙|什么水平/.test(text)) return '被批评';
+      if (/加班|多做|顺便|帮忙|你来|也做一下|不复杂|忙不忙/.test(text)) return '被加任务';
+      if (/看着办|差不多|尽快|适当|自己想|你定/.test(text)) return '模糊指令';
+      return selectedScene;
+    }
+
+    async function generate() {
+      if (loading) return;
+      const bossText = document.getElementById('bossText').value.trim();
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.classList.remove('show');
+
+      if (!bossText) {
+        errorMsg.textContent = '请输入领导的话';
+        errorMsg.classList.add('show');
+        return;
+      }
+
+      // 自动检测场景
+      const scene = autoDetectScene(bossText);
+      document.querySelectorAll('.scene-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.scene === scene);
+      });
+
+      const btn = document.getElementById('generateBtn');
+      loading = true;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"><span class="dot-pulse"></span> 匹配中...</span>';
+
+      try {
+        const resp = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bossText, scene }),
+        });
+        const data = await resp.json();
+
+        if (!resp.ok || !data.success) {
+          throw new Error(data.error || '生成失败');
+        }
+
+        document.getElementById('stableText').textContent = data.data.stable;
+        document.getElementById('counterText').textContent = data.data.counter;
+        document.getElementById('eqText').textContent = data.data.eq;
+        document.getElementById('results').classList.add('show');
+        document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (err) {
+        errorMsg.textContent = err.message || '生成失败，请重试';
+        errorMsg.classList.add('show');
+      } finally {
+        loading = false;
+        btn.disabled = false;
+        btn.innerHTML = '✨ 生成回复';
+      }
+    }
+
+    function copyText(id) {
+      const text = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(text).then(() => showToast('已复制 ✅')).catch(() => {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('已复制 ✅');
+      });
+    }
+
+    function retry() {
+      document.getElementById('results').classList.remove('show');
+      generate();
+    }
+
+    function share() {
+      if (navigator.share) {
+        navigator.share({ title: '职场回复助手', text: '领导这样说，你该怎么回？', url: location.href });
+      } else {
+        navigator.clipboard.writeText(location.href).then(() => showToast('链接已复制'));
+      }
+    }
+
+    // Enter 快捷键
+    document.getElementById('bossText').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); generate(); }
+    });
+  </script>
+</body>
+</html>
